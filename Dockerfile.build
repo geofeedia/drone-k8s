@@ -1,0 +1,23 @@
+FROM quay.io/geofeedia/go:1.5.3
+MAINTAINER Geofeedia <https://geofeedia.com>
+
+ADD . /opt/drone-k8s
+
+WORKDIR /opt/drone-k8s
+
+RUN ls
+# compile static go binary
+# RUN apt-get update && \
+#     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git && \
+#     CGO_ENABLED=0 && \
+#     GOOS=linux && \
+#     mkdir -p $GOPATH/src/github.com/geofeedia/drone-k8s && \
+#     mv main.go $GOPATH/src/github.com/geofeedia/drone-k8s && \
+#     go get -u github.com/drone/drone-go/drone && \
+#     go get -u github.com/drone/drone-go/plugin && \
+#     go build -ldflags "-s" -a -installsuffix cgo -o dist/drone-k8s $GOPATH/src/github.com/geofeedia/drone-k8s/main.go && \
+
+# statically compiled binary is placed in dist directory
+WORKDIR dist/
+
+CMD tar -cf - .
