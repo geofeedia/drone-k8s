@@ -29,17 +29,17 @@ func main() {
     
     var (
         workspace    = new(drone.Workspace)
-		repo         = new(drone.Repo)
-		build        = new(drone.Build)
-		sys          = new(drone.System)
-		pluginParams = new(PluginParams)
-	)
+        repo         = new(drone.Repo)
+        build        = new(drone.Build)
+        sys          = new(drone.System)
+        pluginParams = new(PluginParams)
+    )
 
     plugin.Param("workspace", workspace)
-	plugin.Param("build", build)
-	plugin.Param("repo", repo)
-	plugin.Param("system", sys)
-	plugin.Param("vargs", pluginParams)
+    plugin.Param("build", build)
+    plugin.Param("repo", repo)
+    plugin.Param("system", sys)
+    plugin.Param("vargs", pluginParams)
     plugin.MustParse()
         
     if len(pluginParams.ReplicationController) == 0 {
@@ -70,18 +70,18 @@ func main() {
     }
     
     // ping Docker until available
-	for i := 0; i < 3; i++ {
-		cmd := exec.Command("/usr/bin/docker", "info")
-		cmd.Stdout = ioutil.Discard
-		cmd.Stderr = ioutil.Discard
+    for i := 0; i < 3; i++ {
+        cmd := exec.Command("/usr/bin/docker", "info")
+        cmd.Stdout = ioutil.Discard
+        cmd.Stderr = ioutil.Discard
         
         trace(cmd)
-		err := cmd.Run()
-		if err == nil {
-			break
-		}
-		time.Sleep(time.Second * 5)
-	}
+        err := cmd.Run()
+        if err == nil {
+            break
+        }
+        time.Sleep(time.Second * 5)
+    }
     
     if len(pluginParams.Username) != 0 {
         cmd := exec.Command("/usr/bin/docker", "login",
@@ -91,7 +91,7 @@ func main() {
              pluginParams.Registry)
          
         cmd.Stdout = os.Stdout
-    	cmd.Stderr = os.Stderr
+        cmd.Stderr = os.Stderr
         trace(cmd)
         err := cmd.Run()
         if err != nil {
@@ -111,7 +111,7 @@ func main() {
         pluginParams.ReplicationController,
         "--image", pluginParams.Image)
     cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+    cmd.Stderr = os.Stderr
     
     trace(cmd)
     err := cmd.Run()
@@ -124,5 +124,5 @@ func main() {
 // Trace writes each command to standard error (preceded by a ‘$ ’) before it
 // is executed. Used for debugging your build.
 func trace(cmd *exec.Cmd) {
-	fmt.Println("$", strings.Join(cmd.Args, " "))
+    fmt.Println("$", strings.Join(cmd.Args, " "))
 }
