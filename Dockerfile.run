@@ -7,6 +7,6 @@ RUN curl -o /usr/bin/docker https://get.docker.com/builds/Linux/x86_64/docker-1.
     curl -o /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.1.2/bin/linux/amd64/kubectl && \
     chmod 755 /usr/bin/kubectl
     
-COPY drone-k8s /bin/drone-k8s
+COPY drone-k8s /usr/bin/drone-k8s
 
 ENTRYPOINT [ "drone-k8s" ]

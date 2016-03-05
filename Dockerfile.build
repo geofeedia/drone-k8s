@@ -1,23 +1,26 @@
 FROM quay.io/geofeedia/go:1.5.3
 MAINTAINER Geofeedia <https://geofeedia.com>
 
-ADD . /opt/drone-k8s
+RUN mkdir -p $GOPATH/src/github.com/drone-k8s
 
-WORKDIR /opt/drone-k8s
+ADD . $GOPATH/src/github.com/drone-k8s
+WORKDIR $GOPATH/src/github.com/drone-k8s
 
-RUN ls
 # compile static go binary
-# RUN apt-get update && \
-#     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git && \
-#     CGO_ENABLED=0 && \
-#     GOOS=linux && \
-#     mkdir -p $GOPATH/src/github.com/geofeedia/drone-k8s && \
-#     mv main.go $GOPATH/src/github.com/geofeedia/drone-k8s && \
-#     go get -u github.com/drone/drone-go/drone && \
-#     go get -u github.com/drone/drone-go/plugin && \
-#     go build -ldflags "-s" -a -installsuffix cgo -o dist/drone-k8s $GOPATH/src/github.com/geofeedia/drone-k8s/main.go && \
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git && \
+    CGO_ENABLED=0 && \
+    GOOS=linux && \
+    go get -u github.com/drone/drone-go/drone && \
+    go get -u github.com/drone/drone-go/plugin && \
+    go build -ldflags "-s" -a -installsuffix cgo -o dist/drone-k8s $GOPATH/src/github.com/drone-k8s/main.go
+
+# add runtime Dockerfile to dist so it can be tar streamed for runtime image
+COPY Dockerfile.run $GOPATH/src/github.com/drone-k8s/dist/Dockerfile
 
 # statically compiled binary is placed in dist directory
-WORKDIR dist/
+WORKDIR $GOPATH/src/github.com/drone-k8s/dist
 
+# use a tar stream to pipe the static binary into 
+# a small runtime container
 CMD tar -cf - .
