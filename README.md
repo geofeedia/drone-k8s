@@ -2,6 +2,9 @@
 
 Plugin for Drone CI to be used in the `publish/deploy` steps.
 
+To run this you will need to clone the repo, build the image, and push it to your associated registry and then use that
+as the image for the plugin as shown below. You would replace `image: your-repo/your-org/drone-k8s:1.0.0` with the appropriate values.
+
 This plugin will perform a rolling update of a pod in a [kubernetes](http://kubernetes.io/) cluster. 
 
 This plugin also assumes your drone server is running inside of [kubernetes](http://kubernetes.io/).
@@ -26,13 +29,13 @@ timeout                 -- the timeout threshold for the rolling update
 ```yaml
 publish: 
     drone-k8s:
-        image: quay.io/geofeedia/drone-k8s:1.0.0
-        replication_controller: publisher-e1b-v1
-        namespace: creeper
-        docker_image: quay.io/geofeedia/creeper:v1-latest
-        path_to_cert_authority: /drone/.ssl/ca.pem
-        path_to_client_key: /drone/.ssl/worker-key.pem
-        path_to_client_cert: /drone/.ssl/worker.pem
+        image: your-repo/your-org/drone-k8s:1.0.0
+        replication_controller: some-rc
+        namespace: some-ns
+        docker_image: some-repo/some-org/some-image:1.0.0
+        path_to_cert_authority: /path/to/ca.pem
+        path_to_client_key: /path/to/worker-key.pem
+        path_to_client_cert: /path/to/worker.pem
         update_period: 5s
         timeout: 30s
 ```
