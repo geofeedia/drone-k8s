@@ -1,6 +1,11 @@
 ## drone-k8s plugin
 
-Plugin for Drone CI to be used in the `publish/deploy` steps.
+Plugin for Drone CI to be used in the `publish/deploy` steps that will perform a kubernetes rolling update of the appropriate replication controller and associated pod(s).
+
+To run this you will need to clone the repo, build the image, push it to your associated registry, and then use that
+as the image for the plugin as shown below. The easiest way is to use the provided Makefile. Run `$ make` to build and tag the images. 
+
+To use this plugin yourself you would just need to replace `image: your-repo/your-org/drone-k8s:1.0.0` with the appropriate values.
 
 This plugin will perform a rolling-update for replication controllers or patch of a deployment in a [kubernetes](http://kubernetes.io/) cluster.
 
