@@ -6,6 +6,7 @@ import(
     "os"
     "os/exec"
     "strings"
+    "strconv"
     "errors"
     
     "github.com/drone/drone-go/drone"
@@ -13,17 +14,20 @@ import(
 )
 
 type PluginParams struct {
-    ReplicationController string `json:"replication_controller"`
-    DockerImage           string `json:"docker_image"`
-    Namespace             string `json:"namespace"`
-    K8sServiceHost        string `json:"k8s_service_host"`
-    K8sServicePort        string `json:"k8s_service_port"`
-    Protocol              string `json:"protocol"`
-    PathToCertAuth        string `json:"path_to_cert_authority"`
-    PathToClientKey       string `json:"path_to_client_key"`
-    PathToClientCert      string `json:"path_to_client_cert"`
-    UpdatePeriod          string `json:"update_period"`
-    Timeout               string `json:"timeout"`
+    ReplicationController  string `json:"cation_controller"`
+    DockerImage            string `json:"docker_image"`
+    Namespace              string `json:"namespace"`
+    K8sServiceHost         string `json:"k8s_service_host"`
+    K8sServicePort         string `json:"k8s_service_port"`
+    Protocol               string `json:"protocol"`
+    PathToCertAuth         string `json:"path_to_cert_authority"`
+    PathToClientKey        string `json:"path_to_client_key"`
+    PathToClientCert       string `json:"path_to_client_cert"`
+    UpdatePeriod           string `json:"update_period"`
+    Timeout                string `json:"timeout"`
+    IsDeployment           string `json:"is_deployment"`
+    ContainerName          string `json:"container_name"`
+    DeploymentResourceName string `json:"deployment_resource_name"`
 }
 
 func main() {
@@ -37,6 +41,7 @@ func main() {
         pluginParams = new(PluginParams)
         cmd          = new(exec.Cmd)
         err          = errors.New("err")
+        errMessage   string
     )
     
     plugin.Param("workspace", workspace)
@@ -45,14 +50,6 @@ func main() {
     plugin.Param("system", sys)
     plugin.Param("vargs", pluginParams)
     plugin.MustParse()
-        
-    if len(pluginParams.ReplicationController) == 0 {
-        log.Fatal("No replication controller name provided. Unable to continue.")
-    }
-    
-    if len(pluginParams.DockerImage) == 0 {
-        log.Fatal("No image name provided. Unable to continue.")
-    }
     
     if len(pluginParams.Namespace) == 0 {
         pluginParams.Namespace = "default"
@@ -77,26 +74,57 @@ func main() {
     if len(pluginParams.K8sServicePort) == 0 {
         pluginParams.K8sServicePort = "443"
     }
-
-    cmd = exec.Command(
-        "/usr/bin/kubectl",
-        "rolling-update", pluginParams.ReplicationController,
-        "-s", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
-        "--namespace", pluginParams.Namespace,
-        "--certificate-authority", pluginParams.PathToCertAuth,
-        "--client-key", pluginParams.PathToClientKey,
-        "--client-certificate", pluginParams.PathToClientCert,
-        "--update-period", pluginParams.UpdatePeriod,
-        "--timeout", pluginParams.Timeout,
-        "--image", pluginParams.DockerImage)
+    
+    if len(pluginParams.DockerImage) == 0 {
+        log.Fatal("No image name provided. Unable to continue.")
+    }
+    
+    if isDeployment, _ := strconv.ParseBool(pluginParams.IsDeployment); isDeployment {        
+        if len(pluginParams.ContainerName) == 0 || len(pluginParams.DeploymentResourceName) == 0 {
+            log.Fatal("Either/both the container name or deployment resource name was/were not provided for deployment patch. Unable to continue.")
+        }
+        
+        cmd = exec.Command(
+            "/usr/bin/kubectl",
+            "--namespace", pluginParams.Namespace,
+            "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
+            "--certificate-authority", pluginParams.PathToCertAuth,
+            "--client-key", pluginParams.PathToClientKey,
+            "--client-certificate", pluginParams.PathToClientCert,
+            "patch",
+            "-f", pluginParams.DeploymentResourceName,
+            "-p", `'{"spec":{"template":{"spec":{"containers":[{"name":"` + pluginParams.ContainerName + `","image":"` + pluginParams.DockerImage + `"}]}}}}'`)
+        
+        errMessage = "Unable to update deployment for resource " + pluginParams.DeploymentResourceName
+    } else {
+        // by default we don't assume we are updating a deployment
+        if len(pluginParams.ReplicationController) == 0 {
+            log.Fatal("No replication controller name provided. Unable to continue.")
+        }
+        
+        cmd = exec.Command(
+            "/usr/bin/kubectl",
+            "rolling-update", pluginParams.ReplicationController,
+            "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
+            "--namespace", pluginParams.Namespace,
+            "--certificate-authority", pluginParams.PathToCertAuth,
+            "--client-key", pluginParams.PathToClientKey,
+            "--client-certificate", pluginParams.PathToClientCert,
+            "--update-period", pluginParams.UpdatePeriod,
+            "--timeout", pluginParams.Timeout,
+            "--image", pluginParams.DockerImage)
+        
+        errMessage = "Unable to complete rolling-update for " + pluginParams.ReplicationController
+    }
+    
     cmd.Stdout = os.Stdout
     cmd.Stderr = os.Stderr
 
     trace(cmd)
     err = cmd.Run()
     if err != nil {
-        fmt.Printf("%s", err)
-        log.Fatal("Unable to complete kubernetes rolling-update.")
+        fmt.Printf("%s\n", err)
+        log.Fatal(errMessage)
     }
 }
 
