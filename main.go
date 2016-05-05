@@ -14,7 +14,7 @@ import(
 )
 
 type PluginParams struct {
-    ReplicationController  string `json:"cation_controller"`
+    ReplicationController  string `json:"replication_controller"`
     DockerImage            string `json:"docker_image"`
     Namespace              string `json:"namespace"`
     K8sServiceHost         string `json:"k8s_service_host"`
