@@ -113,7 +113,7 @@ func main() {
                 "--client-certificate", pluginParams.PathToClientCert,
                 "--update-period", pluginParams.UpdatePeriod,
                 "--timeout", pluginParams.Timeout,
-                "--image", pluginParams.DockerImage)   
+                "--image", pluginParams.DockerImage)
         } else {
             cmd = exec.Command(
                 "/usr/bin/kubectl",
