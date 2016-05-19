@@ -102,17 +102,32 @@ func main() {
             log.Fatal("No replication controller name provided. Unable to continue.")
         }
         
-        cmd = exec.Command(
-            "/usr/bin/kubectl",
-            "rolling-update", pluginParams.ReplicationController,
-            "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
-            "--namespace", pluginParams.Namespace,
-            "--certificate-authority", pluginParams.PathToCertAuth,
-            "--client-key", pluginParams.PathToClientKey,
-            "--client-certificate", pluginParams.PathToClientCert,
-            "--update-period", pluginParams.UpdatePeriod,
-            "--timeout", pluginParams.Timeout,
-            "--image", pluginParams.DockerImage)
+        if len(pluginParams.ContainerName) == 0 {
+            cmd = exec.Command(
+                "/usr/bin/kubectl",
+                "rolling-update", pluginParams.ReplicationController,
+                "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
+                "--namespace", pluginParams.Namespace,
+                "--certificate-authority", pluginParams.PathToCertAuth,
+                "--client-key", pluginParams.PathToClientKey,
+                "--client-certificate", pluginParams.PathToClientCert,
+                "--update-period", pluginParams.UpdatePeriod,
+                "--timeout", pluginParams.Timeout,
+                "--image", pluginParams.DockerImage)   
+        } else {
+            cmd = exec.Command(
+                "/usr/bin/kubectl",
+                "rolling-update", pluginParams.ReplicationController,
+                "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
+                "--namespace", pluginParams.Namespace,
+                "--certificate-authority", pluginParams.PathToCertAuth,
+                "--client-key", pluginParams.PathToClientKey,
+                "--client-certificate", pluginParams.PathToClientCert,
+                "--update-period", pluginParams.UpdatePeriod,
+                "--timeout", pluginParams.Timeout,
+                "--container", pluginParams.ContainerName,
+                "--image", pluginParams.DockerImage)
+        }
         
         errMessage = "Unable to complete rolling-update for " + pluginParams.ReplicationController
     }

@@ -26,7 +26,7 @@ path_to_client_cert      -- absolute path to the client cert (worker.pem)
 update_period            -- (only used for rolling-update) the update period for the rolling update (default is 1m0s)
 timeout                  -- (only used for rolling-update) the timeout threshold for the rolling update (default is 5m0s)
 is_deployment            -- REQUIRED for deployment update: Is this an update of a deployment or not. If not specified then rolling-update of replication controller is assumed.
-container_name           -- REQUIRED for deployment update: The name of the container to update the image with
+container_name           -- REQUIRED for deployment update or if performing rolling-update of multi-container pod: The name of the container to update the image with.
 deployment_resource_name -- REQUIRED for deployment update: The name of the deployment resource (i.e. my-deployment.yaml)
 ```
 
