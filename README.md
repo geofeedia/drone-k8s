@@ -1,5 +1,10 @@
 ## drone-k8s plugin
 
+### DISCLAIMER
+The rolling-update for deployments does not currently work since `kubectl patch ...` allows for a specified type name, but the required `kubectl apply ...` only 
+supports the passing of a resource file name which in CI we don't have so this plugin will not currently work for deployments. Possible solutions could be to query
+k8s api after the appropriate patch and then stream that output via stdin with the command `cat my-resource.json | kubectl apply -f -`. 
+
 Plugin for Drone CI to be used in the `publish/deploy` steps that will perform a kubernetes rolling update of the appropriate replication controller and associated pod(s).
 
 To use the plugin you will need to clone the repo, build the image, push it to your associated registry, and then use that
@@ -27,7 +32,7 @@ update_period            -- (only used for rolling-update) the update period for
 timeout                  -- (only used for rolling-update) the timeout threshold for the rolling update (default is 5m0s)
 is_deployment            -- REQUIRED for deployment update: Is this an update of a deployment or not. If not specified then rolling-update of replication controller is assumed.
 container_name           -- REQUIRED for deployment update or if performing rolling-update of multi-container pod: The name of the container to update the image with.
-deployment_resource_name -- REQUIRED for deployment update: The name of the deployment resource (i.e. my-deployment.yaml)
+deployment_resource_name -- REQUIRED for deployment update: The name of the deployment resource (i.e. my-deployment)
 ```
 
 ### Examples
@@ -52,7 +57,7 @@ publish:
     image: your-repo/your-org/drone-k8s:1.0.0
     namespace: some-ns
     is_deployment: true
-    deployment_resource_name: some-deployment.yaml
+    deployment_resource_name: some-deployment
     container_name: some-container
     docker_image: some-repo/some-org/some-image:1.0.0
     path_to_cert_authority: /path/to/ca.pem
@@ -94,7 +99,7 @@ $ go run main.go <<EOF
     },
     "vargs": {
         "is_deployment": "true",
-        "deployment_resource_name": "my-resource.yaml",
+        "deployment_resource_name": "my-deployment",
         "container_name": "containerName",
         "docker_image": "myImage"
     }

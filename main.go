@@ -10,7 +10,7 @@ import(
     "errors"
     
     "github.com/drone/drone-go/drone"
-    "github.com/drone/drone-go/plugin"
+    "github.com/drone/drone-plugin-go/plugin"
 )
 
 type PluginParams struct {
@@ -34,7 +34,6 @@ func main() {
     fmt.Println("DRONE K8S PLUGIN")
     
     var (
-        workspace    = new(drone.Workspace)
         repo         = new(drone.Repo)
         build        = new(drone.Build)
         sys          = new(drone.System)
@@ -44,7 +43,6 @@ func main() {
         errMessage   string
     )
     
-    plugin.Param("workspace", workspace)
     plugin.Param("build", build)
     plugin.Param("repo", repo)
     plugin.Param("system", sys)
@@ -92,7 +90,7 @@ func main() {
             "--client-key", pluginParams.PathToClientKey,
             "--client-certificate", pluginParams.PathToClientCert,
             "patch",
-            "-f", pluginParams.DeploymentResourceName,
+            "deployment", pluginParams.DeploymentResourceName,
             "-p", `'{"spec":{"template":{"spec":{"containers":[{"name":"` + pluginParams.ContainerName + `","image":"` + pluginParams.DockerImage + `"}]}}}}'`)
         
         errMessage = "Unable to update deployment for resource " + pluginParams.DeploymentResourceName

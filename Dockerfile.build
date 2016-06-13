@@ -12,7 +12,7 @@ RUN apt-get update && \
     CGO_ENABLED=0 && \
     GOOS=linux && \
     go get -u github.com/drone/drone-go/drone && \
-    go get -u github.com/drone/drone-go/plugin && \
+    go get -u github.com/drone/drone-plugin-go/plugin && \
     go build -ldflags "-s" -a -installsuffix cgo -o dist/drone-k8s $GOPATH/src/github.com/drone-k8s/main.go
 
 # add runtime Dockerfile to dist so it can be tar streamed for runtime image
