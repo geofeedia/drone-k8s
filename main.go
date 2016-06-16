@@ -81,7 +81,9 @@ func main() {
         if len(pluginParams.ContainerName) == 0 || len(pluginParams.DeploymentResourceName) == 0 {
             log.Fatal("Either/both the container name or deployment resource name was/were not provided for deployment patch. Unable to continue.")
         }
-        
+
+        errMessage = "Unable to update deployment for resource " + pluginParams.DeploymentResourceName
+
         cmd = exec.Command(
             "/usr/bin/kubectl",
             "--namespace", pluginParams.Namespace,
@@ -91,15 +93,42 @@ func main() {
             "--client-certificate", pluginParams.PathToClientCert,
             "patch",
             "deployment", pluginParams.DeploymentResourceName,
-            "-p", `'{"spec":{"template":{"spec":{"containers":[{"name":"` + pluginParams.ContainerName + `","image":"` + pluginParams.DockerImage + `"}]}}}}'`)
+            "-p", `'{"spec":{"template":{"spec":{"containers":[{"name":"` + pluginParams.ContainerName + `","image":"` + pluginParams.DockerImage + `"}]}}}}'`,
+        )
         
-        errMessage = "Unable to update deployment for resource " + pluginParams.DeploymentResourceName
+        // run `kubectl patch ...` command before applying those changes
+        trace(cmd)
+        err = cmd.Run()
+        if err != nil {
+            fmt.Printf("%s\n", err)
+            log.Fatal(errMessage)
+        }
+
+        // print deployment, output as json, and pipe from stdin to `kubectl apply -f -` 
+        cmd = exec.Command(
+            "/usr/bin/kubectl",
+            "--namespace", pluginParams.Namespace,
+            "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
+            "--certificate-authority", pluginParams.PathToCertAuth,
+            "--client-key", pluginParams.PathToClientKey,
+            "--client-certificate", pluginParams.PathToClientCert,
+            "-o", "json",
+            "get",
+            "deployment", pluginParams.DeploymentResourceName,
+            "|",
+            "/usr/bin/kubectl",
+            "--namespace", pluginParams.Namespace,
+            "apply",
+            "-f", "-",
+        )
     } else {
         // by default we don't assume we are updating a deployment
         if len(pluginParams.ReplicationController) == 0 {
             log.Fatal("No replication controller name provided. Unable to continue.")
         }
         
+        errMessage = "Unable to complete rolling-update for " + pluginParams.ReplicationController
+
         if len(pluginParams.ContainerName) == 0 {
             cmd = exec.Command(
                 "/usr/bin/kubectl",
@@ -111,7 +140,8 @@ func main() {
                 "--client-certificate", pluginParams.PathToClientCert,
                 "--update-period", pluginParams.UpdatePeriod,
                 "--timeout", pluginParams.Timeout,
-                "--image", pluginParams.DockerImage)
+                "--image", pluginParams.DockerImage,
+            )
         } else {
             cmd = exec.Command(
                 "/usr/bin/kubectl",
@@ -124,10 +154,9 @@ func main() {
                 "--update-period", pluginParams.UpdatePeriod,
                 "--timeout", pluginParams.Timeout,
                 "--container", pluginParams.ContainerName,
-                "--image", pluginParams.DockerImage)
+                "--image", pluginParams.DockerImage,
+            )
         }
-        
-        errMessage = "Unable to complete rolling-update for " + pluginParams.ReplicationController
     }
     
     cmd.Stdout = os.Stdout

@@ -18,7 +18,7 @@ RUN apt-get update && \
 # add runtime Dockerfile to dist so it can be tar streamed for runtime image
 COPY Dockerfile.run $GOPATH/src/github.com/drone-k8s/dist/Dockerfile
 
-# statically compiled binary is placed in dist directory
+# statically compiled binary is in the dist directory
 WORKDIR $GOPATH/src/github.com/drone-k8s/dist
 
 # use a tar stream to pipe the static binary into 
