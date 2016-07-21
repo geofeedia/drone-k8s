@@ -29,6 +29,8 @@ type PluginParams struct {
     ContainerName          string `json:"container_name"`
     DeploymentResourceName string `json:"deployment_resource_name"`
     EsbConfigPath          string `json:"esb_config_path"`
+    ConfigMapName          string `json:"config_map_name"`
+    ConfigMapKeyName       string `json:"config_map_key_name"`
 }
 
 func main() {
@@ -79,6 +81,14 @@ func main() {
     }
 
     if len(pluginParams.EsbConfigPath) != 0 {
+        if len(pluginParams.ConfigMapName) == 0 {
+            log.Fatal("No config map name specified. Unable to replace config map. Exiting.")
+        }
+
+        if len(pluginParams.ConfigMapKeyName) == 0 {
+            log.Fatal("No config map key name specified. Unable to replace config map. Exiting.")
+        }
+
         cmd = exec.Command(
             "/usr/bin/kubectl",
             "--namespace", pluginParams.Namespace,
@@ -87,7 +97,9 @@ func main() {
             "--client-key", pluginParams.PathToClientKey,
             "--client-certificate", pluginParams.PathToClientCert,
             "replace",
-            "--from-file=" + "config.js=" + pluginParams.EsbConfigPath,
+            "configmap",
+            pluginParams.ConfigMapName,
+            "--from-file=" + pluginParams.ConfigMapKeyName + pluginParams.EsbConfigPath,
         )
         trace(cmd)
         err = cmd.Run()
