@@ -28,6 +28,7 @@ type PluginParams struct {
     IsDeployment           string `json:"is_deployment"`
     ContainerName          string `json:"container_name"`
     DeploymentResourceName string `json:"deployment_resource_name"`
+    EsbConfigPath          string `json:"esb_config_path"`
 }
 
 func main() {
@@ -75,6 +76,25 @@ func main() {
     
     if len(pluginParams.DockerImage) == 0 {
         log.Fatal("No image name provided. Unable to continue.")
+    }
+
+    if len(pluginParams.EsbConfigPath) != 0 {
+        cmd = exec.Command(
+            "/usr/bin/kubectl",
+            "--namespace", pluginParams.Namespace,
+            "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
+            "--certificate-authority", pluginParams.PathToCertAuth,
+            "--client-key", pluginParams.PathToClientKey,
+            "--client-certificate", pluginParams.PathToClientCert,
+            "replace",
+            "--from-file=" + "config.js=" + pluginParams.EsbConfigPath,
+        )
+        trace(cmd)
+        err = cmd.Run()
+        if err != nil {
+            fmt.Printf("%s\n", err)
+            log.Fatal(errMessage)
+        }
     }
     
     if isDeployment, _ := strconv.ParseBool(pluginParams.IsDeployment); isDeployment {        
