@@ -99,7 +99,7 @@ func main() {
             "replace",
             "configmap",
             pluginParams.ConfigMapName,
-            "--from-file=" + pluginParams.ConfigMapKeyName + pluginParams.EsbConfigPath,
+            "--from-file=" + pluginParams.ConfigMapKeyName + "=" + pluginParams.EsbConfigPath,
         )
         trace(cmd)
         err = cmd.Run()
