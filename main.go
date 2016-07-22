@@ -89,7 +89,27 @@ func main() {
             log.Fatal("No config map key name specified. Unable to replace config map. Exiting.")
         }
 
-        cmd = exec.Command(
+        errMessage = "Unable to update config map with name: " + pluginParams.ConfigMapName
+
+        // perform a "dry-run" creation of a new ConfigMap so we can get the yaml output,
+        // and then pipe it to the replace command. 
+        // Clever trick from:  http://stackoverflow.com/questions/38216278/update-k8s-configmap-or-secret-without-deleting-the-existing-one
+        createConfigMapCmd := exec.Command(
+            "/usr/bin/kubectl",
+            "--namespace", pluginParams.Namespace,
+            "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
+            "--certificate-authority", pluginParams.PathToCertAuth,
+            "--client-key", pluginParams.PathToClientKey,
+            "--client-certificate", pluginParams.PathToClientCert,
+            "create",
+            "configmap",
+            pluginParams.ConfigMapName,
+            "--from-file=" + pluginParams.ConfigMapKeyName + "=" + pluginParams.EsbConfigPath,
+            "--dry-run",
+            "-o", "yaml",
+        )
+        trace(createConfigMapCmd)
+        replaceConfigMapCmd := exec.Command(
             "/usr/bin/kubectl",
             "--namespace", pluginParams.Namespace,
             "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
@@ -97,19 +117,16 @@ func main() {
             "--client-key", pluginParams.PathToClientKey,
             "--client-certificate", pluginParams.PathToClientCert,
             "replace",
-            "configmap",
-            pluginParams.ConfigMapName,
-            "--from-file=" + pluginParams.ConfigMapKeyName + "=" + pluginParams.EsbConfigPath,
+            "-f", "-",
         )
-        trace(cmd)
-        err = cmd.Run()
-        if err != nil {
-            fmt.Printf("%s\n", err)
+        trace(replaceConfigMapCmd)
+        success := pipe_commands(createConfigMapCmd, replaceConfigMapCmd)
+        if success == nil {
             log.Fatal(errMessage)
         }
     }
     
-    if isDeployment, _ := strconv.ParseBool(pluginParams.IsDeployment); isDeployment {        
+    if _, parseErr := strconv.ParseBool(pluginParams.IsDeployment); parseErr == nil {        
         if len(pluginParams.ContainerName) == 0 || len(pluginParams.DeploymentResourceName) == 0 {
             log.Fatal("Either/both the container name or deployment resource name was/were not provided for deployment patch. Unable to continue.")
         }
@@ -127,8 +144,6 @@ func main() {
             "deployment", pluginParams.DeploymentResourceName,
             "-p", `'{"spec":{"template":{"spec":{"containers":[{"name":"` + pluginParams.ContainerName + `","image":"` + pluginParams.DockerImage + `"}]}}}}'`,
         )
-        
-        // run `kubectl patch ...` command before applying those changes
         trace(cmd)
         err = cmd.Run()
         if err != nil {
@@ -136,23 +151,31 @@ func main() {
             log.Fatal(errMessage)
         }
 
-        // print deployment, output as json, and pipe from stdin to `kubectl apply -f -` 
-        cmd = exec.Command(
-            "/usr/bin/kubectl",
-            "--namespace", pluginParams.Namespace,
-            "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
-            "--certificate-authority", pluginParams.PathToCertAuth,
-            "--client-key", pluginParams.PathToClientKey,
-            "--client-certificate", pluginParams.PathToClientCert,
-            "-o", "json",
-            "get",
-            "deployment", pluginParams.DeploymentResourceName,
-            "|",
-            "/usr/bin/kubectl",
-            "--namespace", pluginParams.Namespace,
-            "apply",
-            "-f", "-",
-        )
+        // // print deployment, output as json, and pipe from stdin to `kubectl apply -f -` 
+        // getDeploymentCmd := exec.Command(
+        //     "/usr/bin/kubectl",
+        //     "--namespace", pluginParams.Namespace,
+        //     "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
+        //     "--certificate-authority", pluginParams.PathToCertAuth,
+        //     "--client-key", pluginParams.PathToClientKey,
+        //     "--client-certificate", pluginParams.PathToClientCert,
+        //     "-o", "json",
+        //     "get",
+        //     "deployment", pluginParams.DeploymentResourceName,
+        // )
+        // trace(getDeploymentCmd)
+        // applyDeploymentCmd := exec.Command(
+        //     "/usr/bin/kubectl",
+        //     "--namespace", pluginParams.Namespace,
+        //     "apply",
+        //     "-f", "-",
+        // )
+        // trace(applyDeploymentCmd)
+        // success := pipe_commands(getDeploymentCmd, applyDeploymentCmd)
+        // if success == nil {
+        //     log.Fatal(errMessage)
+        // }
+
     } else {
         // by default we don't assume we are updating a deployment
         if len(pluginParams.ReplicationController) == 0 {
@@ -206,4 +229,21 @@ func main() {
 // is executed. Used for debugging the build.
 func trace(cmd *exec.Cmd) {
     fmt.Println("$", strings.Join(cmd.Args, " "))
+}
+
+// helper to pipe output from one command to the next
+func pipe_commands(commands ...*exec.Cmd) []byte {
+    for i, command := range commands[:len(commands) - 1] {
+        out, err := command.StdoutPipe()
+        if err != nil {
+            return nil
+        }
+        command.Start()
+        commands[i + 1].Stdin = out
+    }
+    final, err := commands[len(commands) - 1].Output()
+    if err != nil {
+        return nil
+    }
+    return final
 }
