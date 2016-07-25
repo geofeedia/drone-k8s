@@ -145,6 +145,8 @@ func main() {
             "-p", `'{"spec":{"template":{"spec":{"containers":[{"name":"` + pluginParams.ContainerName + `","image":"` + pluginParams.DockerImage + `"}]}}}}'`,
         )
         trace(cmd)
+        cmd.Stdout = os.Stdout
+        cmd.Stderr = os.Stderr
         err = cmd.Run()
         if err != nil {
             fmt.Printf("%s\n", err)
