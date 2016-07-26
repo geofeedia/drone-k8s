@@ -35,9 +35,9 @@ timeout                  -- (only used for rolling-update) the timeout threshold
 is_deployment            -- REQUIRED for deployment update: Is this an update of a deployment or not. If not specified then rolling-update of replication controller is assumed.
 container_name           -- REQUIRED for deployment update or if performing rolling-update of multi-container pod: The name of the container to update the image with.
 deployment_resource_name -- REQUIRED for deployment update: The name of the deployment resource (i.e. my-deployment)
-esb_config_path          -- REQUIRED for any Geofeedia service with an ESB : very specific to Geofeedia... sorry more pure OSS :(
-config_map_name          -- REQUIRED for any Geofeedia service with an ESB : very specific to Geofeedia... sorry more pure OSS :(
-config_map_key_name      -- REQUIRED for any Geofeedia service with an ESB : very specific to Geofeedia... sorry more pure OSS :(
+esb_config_path          -- REQUIRED for any Geofeedia service with an ESB : very specific to Geofeedia... sorry no more pure OSS :(
+config_map_name          -- REQUIRED for any Geofeedia service with an ESB : very specific to Geofeedia... sorry no more pure OSS :(
+config_map_key_name      -- REQUIRED for any Geofeedia service with an ESB : very specific to Geofeedia... sorry no more pure OSS :(
 ```
 
 ### Examples
