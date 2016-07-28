@@ -181,8 +181,8 @@ func main() {
             log.Fatal(errMessage)
         }
         var oldDeployment Deployment
-        marshallingErr := json.Unmarshal(out, oldDeployment)
-        if err != nil {
+        marshallingErr := json.Unmarshal(out, &oldDeployment)
+        if marshallingErr != nil {
             fmt.Printf("%s\n", marshallingErr)
             log.Fatal(errMessage)
         }
