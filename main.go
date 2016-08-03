@@ -31,6 +31,7 @@ type PluginParams struct {
     EsbConfigPath          string `json:"esb_config_path"`
     ConfigMapName          string `json:"config_map_name"`
     ConfigMapKeyName       string `json:"config_map_key_name"`
+    ServiceConfigMapPath   string `json:"service_config_map_path"`
 }
 
 func main() {
@@ -81,35 +82,50 @@ func main() {
     }
 
     if len(pluginParams.EsbConfigPath) != 0 {
-        if len(pluginParams.ConfigMapName) == 0 {
-            log.Fatal("No config map name specified. Unable to replace config map. Exiting.")
-        }
-
-        if len(pluginParams.ConfigMapKeyName) == 0 {
-            log.Fatal("No config map key name specified. Unable to replace config map. Exiting.")
-        }
-
         errMessage = "Unable to update config map with name: " + pluginParams.ConfigMapName
 
-        // perform a "dry-run" creation of a new ConfigMap so we can get the yaml output,
-        // and then pipe it to the replace command. 
-        // Clever trick from:  http://stackoverflow.com/questions/38216278/update-k8s-configmap-or-secret-without-deleting-the-existing-one
-        createConfigMapCmd := exec.Command(
-            "/usr/bin/kubectl",
-            "--namespace", pluginParams.Namespace,
-            "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
-            "--certificate-authority", pluginParams.PathToCertAuth,
-            "--client-key", pluginParams.PathToClientKey,
-            "--client-certificate", pluginParams.PathToClientCert,
-            "create",
-            "configmap",
-            pluginParams.ConfigMapName,
-            "--from-file=" + pluginParams.ConfigMapKeyName + "=" + pluginParams.EsbConfigPath,
-            "--dry-run",
-            "-o", "yaml",
-        )
-        trace(createConfigMapCmd)
+        if len(pluginParams.ConfigMapName) != 0 {
+            if len(pluginParams.ConfigMapKeyName) == 0 {
+                log.Fatal("No config map key name specified. Unable to replace config map. Exiting.")
+            }
+            // perform a "dry-run" creation of a new ConfigMap so we can get the yaml output,
+            // and then pipe it to the replace command. 
+            // Clever trick from:  http://stackoverflow.com/questions/38216278/update-k8s-configmap-or-secret-without-deleting-the-existing-one
+            createConfigMapCmd := exec.Command(
+                "/usr/bin/kubectl",
+                "--namespace", pluginParams.Namespace,
+                "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
+                "--certificate-authority", pluginParams.PathToCertAuth,
+                "--client-key", pluginParams.PathToClientKey,
+                "--client-certificate", pluginParams.PathToClientCert,
+                "create",
+                "configmap",
+                pluginParams.ConfigMapName,
+                "--from-file=" + pluginParams.ConfigMapKeyName + "=" + pluginParams.EsbConfigPath,
+                "--dry-run",
+                "-o", "yaml",
+            )
+            trace(createConfigMapCmd)
 
+            replaceConfigMapCmd := exec.Command(
+                "/usr/bin/kubectl",
+                "--namespace", pluginParams.Namespace,
+                "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
+                "--certificate-authority", pluginParams.PathToCertAuth,
+                "--client-key", pluginParams.PathToClientKey,
+                "--client-certificate", pluginParams.PathToClientCert,
+                "replace",
+                "-f", "-",
+            )
+            trace(replaceConfigMapCmd)
+            success := pipe_commands(createConfigMapCmd, replaceConfigMapCmd)
+            if success == nil {
+                log.Fatal(errMessage)
+            }
+        }
+      // we need to "kubectl replace" a config map to be used by the pods
+    } else if len(pluginParams.ServiceConfigMapPath) != 0 {  
+        errMessage = "Unable to update config map at location: " + pluginParams.ServiceConfigMapPath
         replaceConfigMapCmd := exec.Command(
             "/usr/bin/kubectl",
             "--namespace", pluginParams.Namespace,
@@ -118,15 +134,17 @@ func main() {
             "--client-key", pluginParams.PathToClientKey,
             "--client-certificate", pluginParams.PathToClientCert,
             "replace",
-            "-f", "-",
+            "-f",
+            pluginParams.ServiceConfigMapPath,
         )
         trace(replaceConfigMapCmd)
-        success := pipe_commands(createConfigMapCmd, replaceConfigMapCmd)
-        if success == nil {
+        replaceConfigMapErr := replaceConfigMapCmd.Run()
+        if replaceConfigMapErr != nil {
+            fmt.Printf("%s\n", replaceConfigMapErr)
             log.Fatal(errMessage)
         }
     }
-    
+
     if _, parseErr := strconv.ParseBool(pluginParams.IsDeployment); parseErr == nil {        
         if len(pluginParams.ContainerName) == 0 || len(pluginParams.DeploymentResourceName) == 0 {
             log.Fatal("Either/both the container name or deployment resource name was/were not provided for deployment patch. Unable to continue.")

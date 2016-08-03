@@ -11,8 +11,7 @@ If updating a kubernetes deployment you can specify that with `is_deployment`. T
 
 Commands we use to update a deployment
 ```
-# perform patch of deployment which enlists the "strategy" defined in the resource if it's
-# a rolling-update of the deployment
+# perform patch of deployment which enlists the "strategy" defined in the resource definition
 kubectl patch ... my-deployment -p `{ ... }`
 ``` 
 
@@ -23,6 +22,7 @@ This plugin assumes your drone server is running inside of [kubernetes](http://k
 ```no-highlight
 replication_controller   -- REQUIRED for rolling-update: The name of the rc
 docker_image             -- REQUIRED for both: The image name with appropriate docker repo
+service_config_map_path  -- REQUIRED if updating a config map 
 namespace                -- the k8s namespace (defaults to using `default`)
 k8s_service_host         -- the K8S_SERVICE_HOST env var (default is 10.100.0.1)
 k8s_service_port         -- the K8S_SERVICE_PORT env var (default is 443)
@@ -35,9 +35,9 @@ timeout                  -- (only used for rolling-update) the timeout threshold
 is_deployment            -- REQUIRED for deployment update: Is this an update of a deployment or not. If not specified then rolling-update of replication controller is assumed.
 container_name           -- REQUIRED for deployment update or if performing rolling-update of multi-container pod: The name of the container to update the image with.
 deployment_resource_name -- REQUIRED for deployment update: The name of the deployment resource (i.e. my-deployment)
-esb_config_path          -- REQUIRED for any Geofeedia service with an ESB : very specific to Geofeedia... sorry no more pure OSS :(
-config_map_name          -- REQUIRED for any Geofeedia service with an ESB : very specific to Geofeedia... sorry no more pure OSS :(
-config_map_key_name      -- REQUIRED for any Geofeedia service with an ESB : very specific to Geofeedia... sorry no more pure OSS :(
+esb_config_path          -- REQUIRED for any Geofeedia service with a ConfigMap configured ESB : very specific to Geofeedia... sorry no more pure OSS :(
+config_map_name          -- REQUIRED for any Geofeedia service with a ConfigMap configured : very specific to Geofeedia... sorry no more pure OSS :(
+config_map_key_name      -- REQUIRED for any Geofeedia service with a ConfigMap configured : very specific to Geofeedia... sorry no more pure OSS :(
 ```
 
 ### Examples
