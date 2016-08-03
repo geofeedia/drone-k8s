@@ -7,13 +7,13 @@ as the image for the plugin as shown below. The easiest way is to use the provid
 
 To use this plugin yourself you would just need to replace `image: your-repo/your-org/drone-k8s:1.0.0` with the appropriate values.
 
-If updating a kubernetes deployment you can specify that with `is_deployment`. The default behavior is to perform a rolling-update of a replication controller if `is_deployment` is not set.
+If updating a kubernetes deployment you can specify that with `is_deployment`. The default behavior is to perform a rolling-update of a replication controller if `is_deployment` is not set or false.
 
-Since the current version of k8s (1.2.4) only allows for a resource **file** be passed in to the `kubectl apply -f my-deployment.yaml` and not just a resource name we perform the rolling-update
-with the following commands:
+Commands we use to update a deployment
 ```
-# perform patch, get deployment, and pipe that output through stdin to the `kubectl apply` command
-kubectl patch ... my-deployment && kubectl -o json get deployment my-deployment | kubectl apply -f -`
+# perform patch of deployment which enlists the "strategy" defined in the resource if it's
+# a rolling-update of the deployment
+kubectl patch ... my-deployment -p `{ ... }`
 ``` 
 
 This plugin assumes your drone server is running inside of [kubernetes](http://kubernetes.io/).
@@ -56,7 +56,7 @@ publish:
     update_period: 5s
     timeout: 30s
     
-# perform an update for a deployment
+# perform a strategic update for a deployment
 publish: 
   drone-k8s:
     image: your-repo/your-org/drone-k8s:1.0.0
@@ -105,8 +105,9 @@ $ go run main.go <<EOF
     "vargs": {
         "is_deployment": "true",
         "deployment_resource_name": "my-deployment",
-        "container_name": "containerName",
-        "docker_image": "myImage"
+        "container_name": "my-container",
+        "docker_image": "quay.io/geofeedia/image:tag",
+        "namespace": "my-namespace"
     }
 }
 EOF

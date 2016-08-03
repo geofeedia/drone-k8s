@@ -8,7 +8,6 @@ import(
     "strings"
     "strconv"
     "errors"
-    "encoding/json"
     
     "github.com/drone/drone-go/drone"
     "github.com/drone/drone-plugin-go/plugin"
@@ -32,21 +31,6 @@ type PluginParams struct {
     EsbConfigPath          string `json:"esb_config_path"`
     ConfigMapName          string `json:"config_map_name"`
     ConfigMapKeyName       string `json:"config_map_key_name"`
-}
-
-type PodSpecTemplateSpecContainers struct {
-    Name  string
-    Image string
-}
-
-type Deployment struct {
-    Spec struct {
-        Template struct {
-            Spec struct {
-                Containers []PodSpecTemplateSpecContainers
-            }
-        }
-    }
 }
 
 func main() {
@@ -125,6 +109,7 @@ func main() {
             "-o", "yaml",
         )
         trace(createConfigMapCmd)
+
         replaceConfigMapCmd := exec.Command(
             "/usr/bin/kubectl",
             "--namespace", pluginParams.Namespace,
@@ -149,17 +134,6 @@ func main() {
 
         errMessage = "Unable to update deployment for resource " + pluginParams.DeploymentResourceName
 
-        // cmd = exec.Command(
-        //     "/usr/bin/kubectl",
-        //     "--namespace", pluginParams.Namespace,
-        //     "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
-        //     "--certificate-authority", pluginParams.PathToCertAuth,
-        //     "--client-key", pluginParams.PathToClientKey,
-        //     "--client-certificate", pluginParams.PathToClientCert,
-        //     "patch",
-        //     "deployment", pluginParams.DeploymentResourceName,
-        //     "-p", `'{"spec":{"template":{"spec":{"containers":[{"name":"` + pluginParams.ContainerName + `","image":"` + pluginParams.DockerImage + `"}]}}}}'`,
-        // )
         cmd = exec.Command(
             "/usr/bin/kubectl",
             "--namespace", pluginParams.Namespace,
@@ -167,62 +141,12 @@ func main() {
             "--certificate-authority", pluginParams.PathToCertAuth,
             "--client-key", pluginParams.PathToClientKey,
             "--client-certificate", pluginParams.PathToClientCert,
-            "get",
-            "deployment",
-            pluginParams.DeploymentResourceName,
-            "-o", "json",
-        )
-
-        trace(cmd)
-
-        out, getDeploymentErr := cmd.Output()
-        if getDeploymentErr != nil {
-            fmt.Printf("%s\n", getDeploymentErr)
-            log.Fatal(errMessage)
-        }
-        var oldDeployment Deployment
-        marshallingErr := json.Unmarshal(out, &oldDeployment)
-        if marshallingErr != nil {
-            fmt.Printf("%s\n", marshallingErr)
-            log.Fatal(errMessage)
-        }
-
-        var oldImage string
-        for _, container := range oldDeployment.Spec.Template.Spec.Containers {
-            if container.Name == pluginParams.ContainerName {
-                oldImage = container.Image
-                break
-            }
-        }
-
-        newDeployment := strings.Replace(string(out[:]), oldImage, pluginParams.DockerImage, -1)
-
-        outputDeploymentCmd := exec.Command(
-            "echo",
-            newDeployment,
-        )
-        outputDeploymentCmd.Stdout = os.Stdout
-        outputDeploymentCmd.Stderr = os.Stderr
-        trace(outputDeploymentCmd)
-
-        applyDeploymentCmd := exec.Command(
-            "/usr/bin/kubectl",
-            "--namespace", pluginParams.Namespace,
-            "--server", pluginParams.Protocol + pluginParams.K8sServiceHost + ":" + pluginParams.K8sServicePort,
-            "--certificate-authority", pluginParams.PathToCertAuth,
-            "--client-key", pluginParams.PathToClientKey,
-            "--client-certificate", pluginParams.PathToClientCert,
-            "apply",
-            "-f", "-",
-        )
-        applyDeploymentCmd.Stdout = os.Stdout
-        applyDeploymentCmd.Stderr = os.Stderr
-        success := pipe_commands(outputDeploymentCmd, applyDeploymentCmd)
-        if success == nil {
-            log.Fatal(errMessage)
-        }
+            "patch",
+            "deployment", pluginParams.DeploymentResourceName,
+            "-p", `{"spec":{"template":{"spec":{"containers":[{"name":"` + pluginParams.ContainerName + `","image":"` + pluginParams.DockerImage + `"}]}}}}`,
+        )    
     } else {
-        // by default we don't assume we are updating a deployment
+        // if not deployment then must be a replication controller
         if len(pluginParams.ReplicationController) == 0 {
             log.Fatal("No replication controller name provided. Unable to continue.")
         }
