@@ -36,8 +36,9 @@ is_deployment            -- REQUIRED for deployment update: Is this an update of
 container_name           -- REQUIRED for deployment update or if performing rolling-update of multi-container pod: The name of the container to update the image with.
 deployment_resource_name -- REQUIRED for deployment update: The name of the deployment resource (i.e. my-deployment)
 esb_config_path          -- REQUIRED for any Geofeedia service with a ConfigMap configured ESB : very specific to Geofeedia... sorry no more pure OSS :(
-config_map_name          -- REQUIRED for any Geofeedia service with a ConfigMap configured : very specific to Geofeedia... sorry no more pure OSS :(
-config_map_key_name      -- REQUIRED for any Geofeedia service with a ConfigMap configured : very specific to Geofeedia... sorry no more pure OSS :(
+config_map_name          -- REQUIRED for any Geofeedia service with a ConfigMap configured ESB : very specific to Geofeedia... sorry no more pure OSS :(
+config_map_key_name      -- REQUIRED for any Geofeedia service with a ConfigMap configured ESB : very specific to Geofeedia... sorry no more pure OSS :(
+service_config_map_path  -- REQUIRED for any Geofeedia service with a ConfigMap (this will be the file that is used in the `kubectl replace -f <CONFIGMAP_FILE_HERE>`)
 ```
 
 ### Examples
@@ -56,7 +57,7 @@ publish:
     update_period: 5s
     timeout: 30s
     
-# perform a strategic update for a deployment
+# perform a strategic update for a deployment along with a replace of a ConfigMap
 publish: 
   drone-k8s:
     image: your-repo/your-org/drone-k8s:1.0.0
@@ -64,6 +65,7 @@ publish:
     is_deployment: true
     deployment_resource_name: some-deployment
     container_name: some-container
+    service_config_map_path: /some/path/to/my-configmap.yaml
     docker_image: some-repo/some-org/some-image:1.0.0
     path_to_cert_authority: /path/to/ca.pem
     path_to_client_key: /path/to/worker-key.pem
