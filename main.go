@@ -103,6 +103,8 @@ func main() {
 			}...)
 
 			createConfigMapCmd := exec.Command("/usr/bin/kubectl", args...)
+			createConfigMapCmd.Stdout = os.Stdout
+			createConfigMapCmd.Stderr = os.Stderr
 			trace(createConfigMapCmd)
 
 			args = append(kubectl_global_options(pluginParams), []string{
@@ -110,6 +112,8 @@ func main() {
 				"-f", "-",
 			}...)
 			replaceConfigMapCmd := exec.Command("/usr/bin/kubectl", args...)
+			replaceConfigMapCmd.Stdout = os.Stdout
+			replaceConfigMapCmd.Stderr = os.Stderr
 			trace(replaceConfigMapCmd)
 			success := pipe_commands(createConfigMapCmd, replaceConfigMapCmd)
 			if success == nil {
@@ -124,6 +128,8 @@ func main() {
 			"-f", pluginParams.ServiceConfigMapPath,
 		}...)
 		replaceConfigMapCmd := exec.Command("/usr/bin/kubectl", args...)
+		replaceConfigMapCmd.Stdout = os.Stdout
+		replaceConfigMapCmd.Stderr = os.Stderr
 		trace(replaceConfigMapCmd)
 		replaceConfigMapErr := replaceConfigMapCmd.Run()
 		if replaceConfigMapErr != nil {
